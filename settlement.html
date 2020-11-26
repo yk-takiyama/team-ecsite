@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+
+<link href="/css/reset.css" th:href="@{/css/reset.css}" rel="stylesheet" />
+<link href="/css/style.css" th:href="@{/css/style.css}" rel="stylesheet" />
+
+<title>Bacchanalia</title>
+</head>
+<body>
+
+<header th:insert="fragments/page_header::pageHeader"></header>
+
+<main>
+
+	<div class="container cart">
+		<div >
+			<h2 th:if="${destinations.size() > 0 && destinations != null}">宛先を選択し、決済を完了します。</h2>
+			<p class="info" th:if="${destinations.size() > 0 && destinations != null}">宛先の新規登録、削除も可能です。</p>
+			<p class="info" th:if="${destinations.size() == 0 || destinations == null}">宛先情報がありません。新規登録してください。</p>
+		</div>
+		<table class="destination" th:if="${destinations.size() > 0 && destinations != null}">
+			<tr>
+				<th>選択</th><th>宛先氏名</th><th>住所</th><th>電話番号</th>
+			</tr>
+			<tr th:each="destination, st: ${destinations}">
+				 <td><input type="radio" name="id" th:checked="${st.index==0}" th:value="${destination.id}" class="radio" /></td>
+				 <td>
+				 	<span th:text="${destination.familyName}"></span><span>　</span><span th:text="${destination.firstName}"></span>
+				 </td>
+				<td th:text="${destination.address}"></td>
+				<td th:text="${destination.telNumber}"></td>
+			</tr>
+		</table>	
+		<div class="buttonArea">
+			<button th:if="${destinations.size() > 0 && destinations != null }" id="deleteBtn">削除</button>
+			<!-- 宛先登録ボタン押下 destination.htmlに画面遷移する -->
+			<form name="destinationForm" action="/pancake/destination/">
+				<button type="submit">新規宛先</button>
+			</form>
+			<button th:if="${destinations.size() > 0 && destinations != null}" id="settlementBtn">決済</button>
+		</div>
+	</div>
+</main>
+
+<script>
+$(() => {	
+	$('#settlementBtn').on('click', () => {
+		let checked = $('.radio:checked');
+		let destinationId = $(checked).val();
+		settlement(destinationId);
+	});
+	$('#deleteBtn').on('click', () =>{
+		let checked = $('.radio:checked');
+		let destinationId = $(checked).val();
+		deleteDestination(destinationId, checked);
+		});
+	});
+
+	// 削除ボタン押下　DestinationController.javaの/deleteメソッドで宛先情報のstatusを0に書き換える
+	function deleteDestination(destinationId, checked){
+		$.ajax({
+			url: '/pancake/destination/delete',
+			type: 'POST',
+			data: JSON.stringify({'destinationId': destinationId}),
+			datatype: 'json',
+			contentType: 'application/json',
+		})
+		//結果　inputの親(td)の親(tr)ごと画面から削除
+		.then((result) => {
+			$(checked).parent().parent().remove();
+			let radioList = $('.radio');
+			if(radioList.length == 0){
+				location.replace('/pancake/settlement/');
+			}
+			radioList[0].checked = true;
+		}, () => {
+			alert('Error: ajax connection failed.');
+		});		
+}	
+</script>
+</body>
+</html>
